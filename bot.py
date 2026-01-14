@@ -202,5 +202,5 @@ async def afk2(interaction: discord.Interaction, username: str):
 # Запуск бота
 if __name__ == "__main__":
     # Вставьте ваш токен бота Discord здесь
-    TOKEN = "https://discord.com/oauth2/authorize?client_id=1460993123231600786&integration_type=0&scope=applications.commands"
+    TOKEN = "MTQ2MDk5MzEyMzIzMTYwMDc4Ng.GF0i8K.5Z4pK5FxcNLf-GJ-dsGKIg_UJb2TYxYxGXBvQ8"
     client.run(TOKEN)
