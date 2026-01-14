@@ -1,6 +1,5 @@
 import discord
 from discord import app_commands
-import requests
 import asyncio
 import aiohttp
 
@@ -10,7 +9,7 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-# Кэш для хранения userId (чтобы не делать лишние запросы)
+# Кэш для хранения userId
 username_cache = {}
 
 async def get_user_id(username: str):
@@ -18,7 +17,7 @@ async def get_user_id(username: str):
     if username in username_cache:
         return username_cache[username]
     
-    url = f"https://users.roblox.com/v1/usernames/users"
+    url = "https://users.roblox.com/v1/usernames/users"
     payload = {"usernames": [username]}
     
     async with aiohttp.ClientSession() as session:
@@ -34,7 +33,65 @@ async def get_user_id(username: str):
 
 async def get_presence(user_id: int):
     """Получаем статус пользователя"""
-    url = f"https://presence.roblox.com/v1/presence/users"
+    url = "https://presence.roblox.com/v1/presence/users"
+    payload = {"userIds": [user_id]}
+    
+    headers = {
+        "Content-Type": "application/json",
+    }
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=payload, headers=headers) as response:
+            data = await response.json()
+            
+            if 'userPresences' in data and len(data['userPresences']) > 0:
+                return data['userPresences'][0]
+    
+    return None
+
+@client.event
+async def on_ready():
+    print(f'Бот {client.user} запущен!')
+    await tree.sync()
+
+@tree.command(name="afk", description="Проверить онлайн-статус игрока в Roblox")
+@app_commands.describe(username="Никнейм игрока в Roblox")
+async def afk(interaction: discord.Interaction, username: str):
+    await interaction.response.defer()
+    
+    try:
+        # Получаем UserID
+        user_id = await get_user_id(username)
+        
+        if not user_id:
+            await interaction.followup.send(f"❌ Игрок `{username}` не найден!")
+            return
+        
+        # Получаем статус
+        presence = await get_presence(user_id)
+        
+        if not presence:
+            await interaction.followup.send(f"⚫ `{username}` is offline.")
+            return
+        
+        # Определяем статус
+        user_presence = presence.get('userPresenceType', 0)
+        
+        if user_presence == 2:  # В игре
+            await interaction.followup.send(f"🟢 `{username}` is in game.")
+        elif user_presence == 1:  # Онлайн на сайте
+            await interaction.followup.send(f"🔵 `{username}` is online.")
+        else:  # Оффлайн
+            await interaction.followup.send(f"⚫ `{username}` is offline.")
+            
+    except Exception as e:
+        await interaction.followup.send(f"⚠️ Произошла ошибка: {e}")
+
+# ВАЖНО: Вставьте свой токен здесь
+TOKEN = "https://discord.com/oauth2/authorize?client_id=1460993123231600786&integration_type=0&scope=applications.commands"
+
+if __name__ == "__main__":
+    client.run(TOKEN)    url = f"https://presence.roblox.com/v1/presence/users"
     payload = {"userIds": [user_id]}
     
     headers = {
